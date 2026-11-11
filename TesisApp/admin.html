@@ -117,6 +117,12 @@
   </main>
 
   <script>
+    // Detección automática del entorno (Local vs Render/Netlify)
+    const API_BASE =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://127.0.0.1:8000'
+        : 'https://sovaem-backend.onrender.com';
+
     let currentAdminKey = sessionStorage.getItem('SOVAEM_ADMIN_AUTH') || '';
 
     const loginScreen = document.getElementById('adminLoginScreen');
@@ -139,7 +145,7 @@
 
     async function verifyAndLoad(pwd) {
       try {
-        const res = await fetch('/api/admin/login', {
+        const res = await fetch(`${API_BASE}/api/admin/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: pwd })
@@ -160,7 +166,7 @@
 
     async function loadAdminTable() {
       const tbody = document.getElementById('adminTableBody');
-      const res = await fetch('/api/admin/alumnos', {
+      const res = await fetch(`${API_BASE}/api/admin/alumnos`, {
         headers: { 'X-Admin-Key': currentAdminKey }
       });
       if (!res.ok) return;
@@ -212,7 +218,7 @@
 
     async function deleteRecord(id) {
       if (!confirm(`¿Seguro que deseas eliminar el registro #${id}?`)) return;
-      await fetch(`/api/admin/alumnos/${id}`, {
+      await fetch(`${API_BASE}/api/admin/alumnos/${id}`, {
         method: 'DELETE',
         headers: { 'X-Admin-Key': currentAdminKey }
       });
@@ -222,7 +228,7 @@
     document.getElementById('btnRefreshDB').addEventListener('click', loadAdminTable);
 
     document.getElementById('btnDownloadCSV').addEventListener('click', () => {
-      window.open(`/api/admin/exportar-csv?key=${encodeURIComponent(currentAdminKey)}`, '_blank');
+      window.open(`${API_BASE}/api/admin/exportar-csv?key=${encodeURIComponent(currentAdminKey)}`, '_blank');
     });
 
     btnLogout.addEventListener('click', () => {
