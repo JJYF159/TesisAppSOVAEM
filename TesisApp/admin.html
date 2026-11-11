@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOVAEM | Panel de Administración y Base de Datos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-logo">S</div>
+      <div>
+        <span class="brand-title">SOVAEM · ADMINISTRACIÓN</span>
+        <span class="brand-subtitle">Gestión de Base de Datos Psicopedagógica</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <a href="/" class="btn-outline btn-sm" style="text-decoration: none;">&larr; Ir al Portal del Alumno</a>
+      <button type="button" class="btn-outline btn-sm" id="btnLogoutAdmin" style="display: none;">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+
+    <!-- PANTALLA DE LOGIN CON CLAVE DE ADMINISTRADOR -->
+    <section id="adminLoginScreen" class="screen active">
+      <div class="card card-centered">
+        <span class="tag-minimal">ACCESO RESTRINGIDO</span>
+        <h1>Panel de Base de Datos</h1>
+        <p class="subtitle">Ingresa la credencial de administrador o psicólogo escolar para visualizar los expedientes vocacionales almacenados y exportar la matriz para SPSS.</p>
+
+        <form id="adminLoginForm" class="form-vertical">
+          <div class="input-group">
+            <label for="adminPasswordInput">Contraseña de Administrador</label>
+            <input 
+              type="password" 
+              id="adminPasswordInput" 
+              placeholder="Ingresa tu clave de acceso..." 
+              required 
+            />
+          </div>
+          <div id="loginErrorMsg" class="feedback-banner status-bad" style="display: none;">
+            Contraseña incorrecta. Verifica tus credenciales.
+          </div>
+          <button type="submit" class="btn-primary btn-full">
+            Desbloquear Base de Datos &rarr;
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- DASHBOARD DE BASE DE DATOS (VISIBLE SOLO TRAS INGRESAR CLAVE) -->
+    <section id="adminDashboardScreen" class="screen">
+      <div class="section-header">
+        <div>
+          <span class="tag-minimal">BASE DE DATOS ACTIVA · SQLITE (sovaem_callao.db)</span>
+          <h2>Registros de Estudiantes Evaluados</h2>
+          <p class="subtitle">Visualización en tiempo real de todos los alumnos que han completado el flujo vocacional.</p>
+        </div>
+        <div class="report-actions">
+          <button type="button" class="btn-outline" id="btnRefreshDB">🔄 Actualizar Tabla</button>
+          <button type="button" class="btn-primary" id="btnDownloadCSV">⬇️ Exportar CSV (SPSS / Excel)</button>
+        </div>
+      </div>
+
+      <!-- Resumen Estadístico Rápido -->
+      <div class="metrics-grid" id="adminStatsGrid">
+        <div class="metric-card">
+          <span class="m-title">TOTAL EVALUADOS</span>
+          <div class="m-val" id="statTotalStudents">0</div>
+          <span class="avg-status status-good">Registros en BD</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">PROMEDIO ESCOLAR GRUPAL</span>
+          <div class="m-val" id="statAvgGrade">0.0 / 20</div>
+          <span class="avg-status status-good">Escala Vigesimal</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">COMPATIBILIDAD MEDIA</span>
+          <div class="m-val" id="statAvgMatch">0%</div>
+          <span class="avg-status status-good">Precisión Predictiva</span>
+        </div>
+        <div class="metric-card">
+          <span class="m-title">CERTIDUMBRE MEDIA</span>
+          <div class="m-val" id="statAvgCertainty">0.0 / 5.0</div>
+          <span class="avg-status status-good">Escala Likert</span>
+        </div>
+      </div>
+
+      <!-- Tabla de Alumnos -->
+      <div class="card" style="overflow-x: auto;">
+        <h3>Listado General de Evaluaciones</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--text-main); text-align: left;">
+              <th style="padding: 10px;">ID</th>
+              <th style="padding: 10px;">Estudiante</th>
+              <th style="padding: 10px;">Grado / Colegio</th>
+              <th style="padding: 10px;">Promedio</th>
+              <th style="padding: 10px;">Carrera #1 Recomendada</th>
+              <th style="padding: 10px;">Compatibilidad</th>
+              <th style="padding: 10px;">Ansiedad / Certidumbre</th>
+              <th style="padding: 10px;">Fecha</th>
+              <th style="padding: 10px;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let currentAdminKey = sessionStorage.getItem('SOVAEM_ADMIN_AUTH') || '';
+
+    const loginScreen = document.getElementById('adminLoginScreen');
+    const dashScreen = document.getElementById('adminDashboardScreen');
+    const loginForm = document.getElementById('adminLoginForm');
+    const passInput = document.getElementById('adminPasswordInput');
+    const errorMsg = document.getElementById('loginErrorMsg');
+    const btnLogout = document.getElementById('btnLogoutAdmin');
+
+    if (currentAdminKey) {
+      verifyAndLoad(currentAdminKey);
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+      const pwd = passInput.value.trim();
+      await verifyAndLoad(pwd);
+    });
+
+    async function verifyAndLoad(pwd) {
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pwd })
+        });
+        if (!res.ok) throw new Error('Unauthorized');
+
+        currentAdminKey = pwd;
+        sessionStorage.setItem('SOVAEM_ADMIN_AUTH', pwd);
+        loginScreen.classList.remove('active');
+        dashScreen.classList.add('active');
+        btnLogout.style.display = 'inline-block';
+        loadAdminTable();
+      } catch (err) {
+        sessionStorage.removeItem('SOVAEM_ADMIN_AUTH');
+        errorMsg.style.display = 'block';
+      }
+    }
+
+    async function loadAdminTable() {
+      const tbody = document.getElementById('adminTableBody');
+      const res = await fetch('/api/admin/alumnos', {
+        headers: { 'X-Admin-Key': currentAdminKey }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const rows = data.alumnos || [];
+
+      document.getElementById('statTotalStudents').textContent = rows.length;
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="padding: 24px; text-align:center; color: var(--text-muted);">No hay evaluaciones registradas todavía en la base de datos.</td></tr>`;
+        return;
+      }
+
+      const avgGrade = (rows.reduce((a, r) => a + Number(r.promedio_academico), 0) / rows.length).toFixed(1);
+      const avgMatch = Math.round(rows.reduce((a, r) => a + Number(r.compatibilidad_top), 0) / rows.length);
+      const avgCert = (rows.reduce((a, r) => a + Number(r.certidumbre_score), 0) / rows.length).toFixed(1);
+
+      document.getElementById('statAvgGrade').textContent = `${avgGrade} / 20`;
+      document.getElementById('statAvgMatch').textContent = `${avgMatch}%`;
+      document.getElementById('statAvgCertainty').textContent = `${avgCert} / 5.0`;
+
+      tbody.innerHTML = rows.map(r => {
+        const gradeGood = Number(r.promedio_academico) >= 13;
+        const anxietyGood = Number(r.ansiedad_score) <= 2.8;
+        return `
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 12px 10px; font-weight:700;">#${r.id}</td>
+            <td style="padding: 12px 10px; font-weight:600;">${r.nombre_alumno}</td>
+            <td style="padding: 12px 10px; color: var(--text-muted);">${r.grado}<br><small>${r.colegio}</small></td>
+            <td style="padding: 12px 10px;">
+              <span class="grade-pill ${gradeGood ? 'status-good' : 'status-bad'}">${r.promedio_academico}</span>
+            </td>
+            <td style="padding: 12px 10px; font-weight:600;">${r.carrera_top}</td>
+            <td style="padding: 12px 10px;">
+              <span class="grade-pill status-good">${r.compatibilidad_top}%</span>
+            </td>
+            <td style="padding: 12px 10px;">
+              <span class="grade-pill ${anxietyGood ? 'status-good' : 'status-bad'}">Ans: ${r.ansiedad_score}</span>
+              <span class="grade-pill status-good">Cert: ${r.certidumbre_score}</span>
+            </td>
+            <td style="padding: 12px 10px; color: var(--text-muted); font-size:12px;">${r.fecha_registro}</td>
+            <td style="padding: 12px 10px;">
+              <button type="button" class="btn-outline btn-sm" onclick="deleteRecord(${r.id})">Eliminar</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm(`¿Seguro que deseas eliminar el registro #${id}?`)) return;
+      await fetch(`/api/admin/alumnos/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-Admin-Key': currentAdminKey }
+      });
+      loadAdminTable();
+    }
+
+    document.getElementById('btnRefreshDB').addEventListener('click', loadAdminTable);
+
+    document.getElementById('btnDownloadCSV').addEventListener('click', () => {
+      window.open(`/api/admin/exportar-csv?key=${encodeURIComponent(currentAdminKey)}`, '_blank');
+    });
+
+    btnLogout.addEventListener('click', () => {
+      sessionStorage.removeItem('SOVAEM_ADMIN_AUTH');
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

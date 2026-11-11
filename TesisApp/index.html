@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOVAEM | Plataforma de Orientación Vocacional con IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<!-- BARRA SUPERIOR LIMPIA PARA EL ALUMNO -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="brand-logo">S</div>
+      <div>
+        <span class="brand-title">SOVAEM</span>
+        <span class="brand-subtitle">Orientación Vocacional con IA</span>
+      </div>
+    </div>
+
+    <nav class="stepper" id="stepperNav">
+      <div class="step-item active" data-step="1">
+        <span class="step-num">1</span>
+        <span class="step-label">Identificación</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="2">
+        <span class="step-num">2</span>
+        <span class="step-label">Notas (PDF)</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="3">
+        <span class="step-num">3</span>
+        <span class="step-label">Entrevista IA</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="4">
+        <span class="step-num">4</span>
+        <span class="step-label">Autoevaluación</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item" data-step="5">
+        <span class="step-num">5</span>
+        <span class="step-label">Reporte y Consultas</span>
+      </div>
+    </nav>
+
+    <div class="topbar-actions" style="display: flex; align-items: center; gap: 12px;">
+      <div class="topbar-right" id="userBadgeContainer" style="display: none;">
+        <span class="status-dot"></span>
+        <span id="activeStudentName" class="student-badge-name">Alumno</span>
+      </div>
+
+      <a 
+        href="/admin" 
+        target="_blank" 
+        class="btn-outline btn-sm" 
+        style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-weight: 600;"
+      >
+        🗄️ Ver Base de Datos
+      </a>
+    </div>
+  </header>
+  
+  <main class="main-container">
+
+    <!-- PANTALLA 1: BIENVENIDA Y NOMBRE DEL ALUMNO -->
+    <section id="step-1" class="screen active">
+      <div class="card card-centered">
+        <div class="tag-minimal">SISTEMA DE DIAGNÓSTICO VOCACIONAL</div>
+        <h1>Bienvenido al portal de evaluación vocacional</h1>
+        <p class="subtitle">
+          Completa las etapas secuenciales: carga de calificaciones académicas, entrevista conversacional con IA y autoevaluación para generar tu reporte de compatibilidad y consultar todas tus dudas sobre tu futura carrera.
+        </p>
+
+        <form id="welcomeForm" class="form-vertical">
+          <div class="input-group">
+            <label for="studentNameInput">Nombre completo del estudiante</label>
+            <input 
+              type="text" 
+              id="studentNameInput" 
+              placeholder="Ej. Mateo Quispe Mendoza" 
+              autocomplete="off"
+              required 
+            />
+          </div>
+
+          <div class="input-row">
+            <div class="input-group">
+              <label for="studentGradeInput">Grado / Nivel</label>
+              <select id="studentGradeInput">
+                <option value="5° de Secundaria">5° de Secundaria</option>
+                <option value="4° de Secundaria">4° de Secundaria</option>
+                <option value="Egresado Secundaria">Egresado de Secundaria</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label for="studentSchoolInput">Institución Educativa</label>
+              <input 
+                type="text" 
+                id="studentSchoolInput" 
+                placeholder="Ej. I.E. Augusto B. Leguía / Callao"
+                value="" 
+                required 
+              />
+            </div>
+          </div>
+
+          <label class="checkbox-container">
+            <input type="checkbox" id="consentCheck" required checked />
+            <span>Acepto el consentimiento informado para el procesamiento confidencial de mis datos académicos y vocacionales.</span>
+          </label>
+
+          <button type="submit" class="btn-primary btn-full">
+            Comenzar Evaluación Vocacional &rarr;
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- PANTALLA 2: SUBIDA DE NOTAS (PDF / IMAGEN / MANUAL) -->
+    <section id="step-2" class="screen">
+      <div class="section-header">
+        <div>
+          <span class="tag-minimal">ETAPA 1 DE 3 · PROCESAMIENTO ACADÉMICO</span>
+          <h2>Registro y Extracción de Calificaciones Escolares</h2>
+          <p class="subtitle">Sube tu libreta de notas en formato PDF, Imagen (PNG/JPG) o TXT para extraer tus calificaciones automáticamente, o escríbelas directamente en la tabla (escala 0 a 20).</p>
+        </div>
+        <div class="average-box">
+          <span class="avg-label">PROMEDIO GENERAL</span>
+          <span class="avg-value" id="generalAverageValue">0.0</span>
+          <span class="avg-status" id="generalAverageStatus">Sin evaluar</span>
+        </div>
+      </div>
+
+      <div class="upload-zone">
+        <input type="file" id="pdfFileInput" accept=".pdf,.png,.jpg,.jpeg,.txt" hidden />
+        <div class="upload-content">
+          <div class="upload-icon">📄</div>
+          <div>
+            <strong>Sube tu Libreta de Notas (PDF o Imagen)</strong>
+            <p id="uploadStatusText">Selecciona tu archivo PDF o imagen de libreta escolar para leer los cursos o ingresa tus notas manualmente abajo.</p>
+          </div>
+          <div class="upload-actions">
+            <button type="button" class="btn-outline" id="btnTriggerUpload">Subir archivo PDF / Imagen</button>
+            <button type="button" class="btn-ghost" id="btnSimulateOCR">Autocompletar libreta ejemplo</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ocrFeedbackBanner" class="feedback-banner" style="display: none;"></div>
+
+      <div class="card">
+        <div class="table-header-bar">
+          <h3>Calificaciones por Curso (Escala Vigesimal 0 - 20)</h3>
+          <button type="button" class="btn-outline btn-sm" id="btnAddCourse">+ Agregar curso adicional</button>
+        </div>
+        <div class="courses-grid" id="coursesContainer"></div>
+      </div>
+
+      <div class="footer-actions">
+        <button type="button" class="btn-outline" onclick="goToStep(1)">&larr; Volver</button>
+        <button type="button" class="btn-primary" id="btnFinishGrades">
+          Guardar Notas y Pasar a la Entrevista con IA &rarr;
+        </button>
+      </div>
+    </section>
+
+    <!-- PANTALLA 3: ENTREVISTA CON LA IA (NLP) -->
+    <section id="step-3" class="screen">
+      <div class="section-header">
+        <div>
+          <span class="tag-minimal">ETAPA 2 DE 3 · ENTREVISTA CONVERSACIONAL</span>
+          <h2>Entrevista Vocacional con Inteligencia Artificial</h2>
+          <p class="subtitle">Responde con naturalidad a las 5 preguntas del asistente. El motor analizará tus intereses, habilidades y visión a futuro.</p>
+        </div>
+        <div class="nlp-progress-box">
+          <span class="avg-label">PROGRESO ENTREVISTA</span>
+          <span class="avg-value" id="chatProgressValue">1 / 5</span>
+          <span class="avg-status status-good">Analizando discurso</span>
+        </div>
+      </div>
+
+      <div class="chat-layout">
+        <div class="chat-card">
+          <div class="chat-messages" id="chatMessages"></div>
+          <form id="chatForm" class="chat-input-area">
+            <textarea 
+              id="chatInput" 
+              rows="3" 
+              placeholder="Escribe tu respuesta aquí..."
+              required
+            ></textarea>
+            <div class="chat-buttons">
+              <button type="button" class="btn-ghost btn-sm" id="btnInsertSampleAnswer">
+                Insertar respuesta sugerida
+              </button>
+              <button type="submit" class="btn-primary" id="btnSendChat">
+                Enviar respuesta &rarr;
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="nlp-side-panel">
+          <div class="card">
+            <h3>Detección Semántica en Vivo</h3>
+            <p class="small-muted">Palabras clave y patrones vocacionales detectados:</p>
+            <div id="detectedKeywordsList" class="tags-container">
+              <span class="tag-empty">Esperando tu primera respuesta...</span>
+            </div>
+            <hr class="divider" />
+            <h4>Afinidad preliminar por área</h4>
+            <div id="liveNlpBars" class="bars-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button type="button" class="btn-outline" onclick="goToStep(2)">&larr; Volver a Notas</button>
+        <button type="button" class="btn-primary" id="btnFinishInterview" disabled>
+          Continuar a la Autoevaluación &rarr;
+        </button>
+      </div>
+    </section>
+
+    <!-- PANTALLA 4: AUTOEVALUACIÓN PSICOPEDAGÓGICA -->
+    <section id="step-4" class="screen">
+      <div class="section-header">
+        <div>
+          <span class="tag-minimal">ETAPA 3 DE 3 · EVALUACIÓN PSICOPEDAGÓGICA</span>
+          <h2>Cuestionario de Autoevaluación Vocacional</h2>
+          <p class="subtitle">Marca del 1 (Totalmente en desacuerdo) al 5 (Totalmente de acuerdo) según cómo te sientes actualmente respecto a tu futuro profesional.</p>
+        </div>
+        <div class="average-box">
+          <span class="avg-label">RESPONDIDAS</span>
+          <span class="avg-value" id="likertCountValue">0 / 12</span>
+          <button type="button" class="btn-ghost btn-sm" id="btnAutoFillLikert">Completar rápido</button>
+        </div>
+      </div>
+
+      <div class="card" id="likertContainer"></div>
+
+      <div class="footer-actions">
+        <button type="button" class="btn-outline" onclick="goToStep(3)">&larr; Volver a Entrevista IA</button>
+        <button type="button" class="btn-primary" id="btnGenerateFinalReport">
+          Finalizar y Generar Reporte de Compatibilidad &rarr;
+        </button>
+      </div>
+    </section>
+
+    <!-- PANTALLA 5: REPORTE FINAL + CHAT CON GEMINI SOBRE LA CARRERA -->
+    <section id="step-5" class="screen">
+      <div class="report-top-banner">
+        <div>
+          <span class="tag-minimal">DIAGNÓSTICO VOCACIONAL COMPLETADO</span>
+          <h2 id="reportStudentTitle">Reporte de Compatibilidad Profesional</h2>
+          <p class="subtitle" id="reportStudentMeta"></p>
+        </div>
+        <div class="report-actions">
+          <button type="button" class="btn-outline" onclick="window.print()">🖨️ Imprimir PDF</button>
+          <button type="button" class="btn-primary" onclick="resetFullApp()">Nueva Evaluación</button>
+        </div>
+      </div>
+
+      <!-- Carrera #1 de Mayor Compatibilidad -->
+      <div class="card hero-career-card" id="topCareerHero"></div>
+
+      <!-- Indicadores (Verde = Bueno / Rojo = Malo) -->
+      <div class="metrics-grid" id="reportMetricsGrid"></div>
+
+      <!-- CHAT INTERACTIVO CON GEMINI PARA PREGUNTAR DUDAS SOBRE LA CARRERA -->
+      <div class="card advisor-card">
+        <div class="advisor-header">
+          <div>
+            <span class="tag-minimal">ORIENTADOR VIRTUAL DE CARRERA</span>
+            <h3 id="advisorTitle">¿Tienes dudas sobre tu carrera recomendada? Pregúntale a nuestra IA</h3>
+            <p class="small-muted">Selecciona una pregunta frecuente o escribe cualquier duda sobre cursos del primer ciclo, sueldos en Perú, universidades, institutos o campo laboral.</p>
+          </div>
+          <span class="grade-pill status-good">En línea</span>
+        </div>
+
+        <div class="quick-questions-bar">
+          <button type="button" class="btn-outline btn-sm quick-q-btn" data-q="¿Cuánto gana un egresado de esta carrera en Perú y dónde puedo trabajar?">
+            💰 ¿Cuánto se gana en Perú?
+          </button>
+          <button type="button" class="btn-outline btn-sm quick-q-btn" data-q="¿Qué cursos llevaré en el primer ciclo y cómo evito jalar o abandonar?">
+            📚 ¿Qué cursos se llevan en 1° ciclo?
+          </button>
+          <button type="button" class="btn-outline btn-sm quick-q-btn" data-q="¿En qué universidades de Lima y Callao puedo estudiar esta carrera?">
+            🏛️ ¿Dónde estudiarla en Lima/Callao?
+          </button>
+          <button type="button" class="btn-outline btn-sm quick-q-btn" data-q="¿En qué institutos puedo estudiar esta carrera o solo se estudia en universidades?">
+            🎓 ¿Se estudia en Institutos o solo Universidad?
+          </button>
+        </div>
+
+        <div class="advisor-chat-box" id="advisorChatMessages"></div>
+
+        <form id="advisorChatForm" class="advisor-input-row">
+          <input 
+            type="text" 
+            id="advisorQuestionInput" 
+            placeholder="Escribe tu duda sobre la carrera aquí (ej. ¿Es muy difícil la matemática en primer ciclo?)..." 
+            required 
+          />
+          <button type="submit" class="btn-primary" id="btnSendAdvisorQuestion">
+            Enviar consulta &rarr;
+          </button>
+        </form>
+      </div>
+
+      <!-- Ranking completo de Carreras -->
+      <div class="card">
+        <h3>Ranking de Compatibilidad por Carrera Profesional</h3>
+        <p class="small-muted">En <strong>verde</strong> las carreras recomendadas de alta compatibilidad y en <strong>rojo</strong> las de baja afinidad.</p>
+        <div id="careersRankingContainer" class="ranking-list"></div>
+      </div>
+
+      <div class="two-columns">
+        <div class="card">
+          <h3>Diagnóstico Psicopedagógico</h3>
+          <div id="psychSummaryContainer"></div>
+        </div>
+        <div class="card">
+          <h3>Plan de Acción Recomendado</h3>
+          <div id="actionPlanContainer"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
