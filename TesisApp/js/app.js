@@ -6,7 +6,7 @@ if (window.pdfjsLib) {
 const API_BASE =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000'
-    : 'https://tu-backend-en-render.onrender.com';
+    : 'https://sovaem-backend.onrender.com';
 
 // 1. Informe de Progreso 2020 (BROWN TAYLOR, Jhon Harvey)
 const PRESET_LIBRETA_2020_JHON = [
@@ -289,7 +289,7 @@ async function processUploadedDocument(file) {
       formData.append('file', file);
     }
 
-    const res = await fetch(`${https://sovaem-backend.onrender.com}/api/analizar-libreta`, {
+    const res = await fetch(`${API_BASE}/api/analizar-libreta`, {
       method: 'POST',
       body: formData
     });
